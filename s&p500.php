@@ -1,6 +1,10 @@
 <?php
 require_once __DIR__ . '/condb.php';
-if (session_status() === PHP_SESSION_NONE) session_start();
+
+/* ✅ ใช้ SESSION สำหรับแจ้งเตือน */
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
+}
 
 const APP_ID = 'invest';
 const STORAGE_KEY = 'sp500_app_v2';
@@ -140,6 +144,11 @@ if (isset($_GET['api'])) {
 
   json_out(['ok'=>false,'error'=>'unknown_api'], 404);
 }
+
+/* ✅ ดึงข้อความแจ้งเตือนจาก SESSION (แล้วค่อย unset หลังยิง JS) */
+$__sess_success = $_SESSION['success'] ?? null;
+$__sess_error   = $_SESSION['error'] ?? null;
+unset($_SESSION['success'], $_SESSION['error']);
 ?>
 <!DOCTYPE html>
 <html lang="th">
@@ -155,21 +164,16 @@ if (isset($_GET['api'])) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-/* ===== Theme (ปรับให้โหมดมืด “เข้มทั้งหน้า” + ปุ่มแดง/เขียวเป็นเฉดแบบไฟล์ตัวอย่าง) ===== */
+/* ===== Theme: EXACT like your old file ===== */
 :root{
   --bg:#f3f7ff;
   --card:#ffffff;
-  --card2:#ffffff;
   --border:#dbe7ff;
 
-  --accent1:#2563eb;
+  --accent:#2563eb;
   --accent2:#38bdf8;
-
-  --danger1:#dc2626;
-  --danger2:#ef4444;
-
-  --ok1:#16a34a;
-  --ok2:#22c55e;
+  --danger:#dc2626;
+  --ok:#16a34a;
 
   --text-main:#0f172a;
   --text-soft:#334155;
@@ -177,30 +181,26 @@ if (isset($_GET['api'])) {
 
   --placeholder:#64748b;
   --shadow: 0 10px 30px rgba(0,0,0,.08);
+
   --radius:14px;
 }
 
 body.dark{
   --bg:#0b0b0b;
-  --card:#101114;     /* ✅ การ์ด/คอนเทนต์เข้ม */
-  --card2:#0d0e10;    /* ✅ ส่วนหัว/แท็บเข้มกว่าเล็กน้อย */
+  --card:#121212;
   --border:#2a2a2a;
 
-  --accent1:#b11226;  /* ✅ แดงเข้มแบบไฟล์ตัวอย่าง */
-  --accent2:#ff4d4d;  /* ✅ แดงสว่าง */
-
-  --danger1:#b11226;
-  --danger2:#ef4444;
-
-  --ok1:#16a34a;
-  --ok2:#22c55e;
+  --accent:#b11226;
+  --accent2:#ef4444;
+  --danger:#ef4444;
+  --ok:#22c55e;
 
   --text-main:#f1f1f1;
   --text-soft:#cbd5e1;
   --text-invert:#ffffff;
 
   --placeholder:#9ca3af;
-  --shadow: 0 10px 30px rgba(0,0,0,.45);
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
 }
 
 /* ===== Base ===== */
@@ -219,8 +219,8 @@ main{padding:12px}
 /* ===== Header ===== */
 header{
   padding:12px 16px;
-  background:var(--card2);
-  border-bottom:2px solid var(--accent1);
+  background:var(--card);
+  border-bottom:2px solid var(--accent);
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -242,14 +242,14 @@ nav button{flex:1}
   padding:10px 14px;
   cursor:pointer;
   font-weight:900;
-  border:1px solid var(--accent1);
+  border:1px solid var(--accent);
   background:transparent;
   color:var(--text-main);
 }
 .tabBtn:hover{background:rgba(37,99,235,.08)}
 body.dark .tabBtn:hover{background:rgba(255,255,255,.06)}
 .tabBtn.active{
-  background:linear-gradient(135deg, var(--accent1), var(--accent2));
+  background:linear-gradient(135deg, var(--accent), var(--accent2));
   color:var(--text-invert);
   border-color:rgba(0,0,0,.05);
 }
@@ -277,8 +277,7 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
   align-items:flex-end;
 }
 .row > *{flex:1;min-width:160px}
-
-/* ===== Grid 2 columns ===== */
+/* ===== Grid 2 columns (เหมือนไฟล์ตัวอย่าง) ===== */
 .grid2{
   display:grid;
   grid-template-columns:repeat(2, minmax(0,1fr));
@@ -296,40 +295,41 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0}
 }
 .btnRow > button{ flex:1; }
 
+/* ให้ช่อง/ปุ่มสูงเท่ากันดูเป็นระเบียบ */
 .fieldBlock label{ display:block; }
-
 /* ===== Buttons ===== */
 button{
   border-radius:10px;
   padding:10px 14px;
-  background:linear-gradient(135deg, var(--accent1), var(--accent2));
+  background:linear-gradient(135deg, var(--accent), var(--accent2));
   color:var(--text-invert);
   border:1px solid rgba(0,0,0,.05);
   cursor:pointer;
-  font-weight:900;
+  font-weight:800;
 }
-button:hover{filter:brightness(1.03)}
+button:hover{filter:brightness(1.02)}
 button:active{transform:translateY(1px)}
 button.outline{
   background:none;
   color:var(--text-main);
-  border:1px solid var(--accent1);
+  border:1px solid var(--accent);
 }
 button.outline:hover{background:rgba(37,99,235,.08)}
 body.dark button.outline:hover{background:rgba(255,255,255,.06)}
 
-/* ✅ ปุ่มแดง/เขียวเป็น “เฉด” ไม่ใช่สีทึบ */
-button.danger, .danger{
-  background:linear-gradient(135deg, var(--danger1), var(--danger2));
-  border-color:rgba(0,0,0,.05);
+button.danger,
+.danger{
+  background:var(--danger);
+  border-color:var(--danger);
   color:#fff;
 }
-button.ok, .ok{
-  background:linear-gradient(135deg, var(--ok1), var(--ok2));
-  border-color:rgba(0,0,0,.05);
+button.ok,
+.ok{
+  background:var(--ok);
+  border-color:var(--ok);
   color:#fff;
 }
-.actionBtn{padding:6px 10px;border-radius:8px;font-weight:900}
+.actionBtn{padding:6px 10px;border-radius:8px;font-weight:800}
 
 /* ===== Inputs ===== */
 input,select{
@@ -344,30 +344,7 @@ input,select{
   font-size:16px;
 }
 input::placeholder{ color:var(--placeholder); opacity:1 }
-
-/* ✅ dropdown อ่านง่ายทั้งโหมด */
-select option, select optgroup{ background: var(--card); color: var(--text-main); }
-
-/* ✅ select arrow ให้ชัดในโหมดมืด */
-select{
-  appearance:none;
-  background-image:
-    linear-gradient(45deg, transparent 50%, var(--text-main) 50%),
-    linear-gradient(135deg, var(--text-main) 50%, transparent 50%),
-    linear-gradient(to right, transparent, transparent);
-  background-position:
-    calc(100% - 18px) calc(1em + 4px),
-    calc(100% - 13px) calc(1em + 4px),
-    calc(100% - 2.5em) 0.5em;
-  background-size:5px 5px, 5px 5px, 1px 1.5em;
-  background-repeat:no-repeat;
-}
-body.dark select{
-  background-image:
-    linear-gradient(45deg, transparent 50%, rgba(255,255,255,.92) 50%),
-    linear-gradient(135deg, rgba(255,255,255,.92) 50%, transparent 50%),
-    linear-gradient(to right, transparent, transparent);
-}
+select option{ background:var(--card); color:var(--text-main); }
 
 /* ===== Table ===== */
 .tableWrap{
@@ -399,9 +376,6 @@ th{
   font-size:12px;
   text-transform:uppercase;
 }
-body.dark th{
-  background:rgba(255,255,255,.06);
-}
 tr:last-child td{border-bottom:none}
 .right{text-align:right}
 .mono{font-variant-numeric:tabular-nums}
@@ -424,7 +398,7 @@ tr:last-child td{border-bottom:none}
 }
 canvas{display:block;width:100%;height:260px;background:transparent}
 
-/* ===== Modal ===== */
+/* ===== Modal edit ===== */
 .modalBack{
   position:fixed;inset:0;
   background:rgba(0,0,0,.45);
@@ -467,56 +441,71 @@ canvas{display:block;width:100%;height:260px;background:transparent}
   color:var(--text-soft);
   background:rgba(100,116,139,.12);
 }
-body.dark .kbd{ background:rgba(255,255,255,.06); }
 
 /* ===== Panels ===== */
 .panel{display:none}
 .panel.active{display:block}
 
-/* ===== SweetAlert2: ใช้ฟอนต์ initial แบบไฟล์คุณ ===== */
-.swal2-popup,
+/* ===== SweetAlert2: ให้เข้าธีม + ฟอนต์ ===== */
+.swal2-popup{
+  border-radius:16px !important;
+  background: var(--card) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial !important;
+}
 .swal2-title,
 .swal2-html-container,
 .swal2-content{
-  font-family: initial !important;
+  color: var(--text-main) !important;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial !important;
 }
-.swal2-popup{ border-radius:16px !important; }
+.swal2-timer-progress-bar{ background: var(--accent) !important; }
+body.dark .swal2-timer-progress-bar{ background: var(--accent2) !important; }
+
+/* =========================
+   ✅ FIX DARKMODE SELECT (สำคัญ)
+========================= */
+select{
+  appearance:none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-main) 50%),
+    linear-gradient(135deg, var(--text-main) 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+  background-position:
+    calc(100% - 18px) calc(1em + 4px),
+    calc(100% - 13px) calc(1em + 4px),
+    calc(100% - 2.5em) 0.5em;
+  background-size:5px 5px, 5px 5px, 1px 1.5em;
+  background-repeat:no-repeat;
+}
+body.dark select{
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255,255,255,.92) 50%),
+    linear-gradient(135deg, rgba(255,255,255,.92) 50%, transparent 50%),
+    linear-gradient(to right, transparent, transparent);
+}
+select option, select optgroup{
+  background: var(--card);
+  color: var(--text-main);
+}
+select option:disabled{ color: var(--placeholder); }
+
+/* โฟกัสดูชัดขึ้น */
+input:focus, select:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+body.dark input:focus, body.dark select:focus{
+  box-shadow: 0 0 0 3px rgba(239,68,68,.12);
+}
 </style>
 </head>
 
 <body>
 
 <?php
-// ✅ SweetAlert2 via SESSION (ตามตัวอย่างคุณเป๊ะ)
-if (isset($_SESSION['success'])) { ?>
-  <script>
-  Swal.fire({
-    icon: 'success',
-    title: 'สำเร็จ!',
-    text: <?= json_encode($_SESSION['success'], JSON_UNESCAPED_UNICODE) ?>,
-    showConfirmButton: false,
-    timer: 1000,
-    timerProgressBar: true
-  });
-  </script>
-<?php unset($_SESSION['success']); }
-
-if (isset($_SESSION['error'])) { ?>
-  <script>
-  Swal.fire({
-    icon: 'error',
-    title: 'เกิดข้อผิดพลาด!',
-    text: <?= json_encode($_SESSION['error'], JSON_UNESCAPED_UNICODE) ?>,
-    showConfirmButton: false,
-    timer: 1000,
-    timerProgressBar: true
-  });
-  </script>
-<?php unset($_SESSION['error']); }
-?>
-
-<?php
-// ถ้ามี navbar.php ก็ใส่ได้ ไม่มีก็ไม่ error
 if (file_exists(__DIR__ . '/navbar.php')) {
   include __DIR__ . '/navbar.php';
 }
@@ -745,29 +734,37 @@ dayjs.extend(dayjs_plugin_duration);
 const KEY = 'sp500_app_v2';
 const MAIN_TAB_KEY = 'sp500_main_tab';
 
-// ✅ API base
+// ✅ API base: ใช้ path ปัจจุบัน กันชื่อไฟล์/โฟลเดอร์เปลี่ยน
 const API_BASE = window.location.pathname;
 
-// ===== SweetAlert2 helpers =====
-// (คงไว้ใช้กับปุ่มต่าง ๆ ในหน้า) — เป็น Toast มุมบนเหมือนในรูปตัวอย่าง
-const Toast = Swal.mixin({
-  toast: true,
-  position: 'top',
-  showConfirmButton: false,
-  timer: 1000,
-  timerProgressBar: true
-});
-
-function toastOk(title, text=''){ Toast.fire({ icon:'success', title: title||'สำเร็จ', text: text||'' }); }
-function toastErr(title, text=''){ Toast.fire({ icon:'error', title: title||'ผิดพลาด', text: text||'' }); }
+/* =========================
+   ✅ SweetAlert2: Modal กลางจอ (แทน Toast ทั้งหมด)
+========================= */
+function popupBase({icon='info', title='', text='', timer=1000}){
+  return Swal.fire({
+    icon,
+    title: title || '',
+    text: text || '',
+    showConfirmButton: false,
+    timer: timer,
+    timerProgressBar: true
+  });
+}
+function popupOk(title, text=''){ return popupBase({icon:'success', title: title || 'สำเร็จ!', text}); }
+function popupErr(title, text=''){ return popupBase({icon:'error', title: title || 'เกิดข้อผิดพลาด!', text}); }
+function popupInfo(title, text=''){ return popupBase({icon:'info', title: title || 'แจ้งเตือน', text}); }
+function popupWarn(title, text=''){ return popupBase({icon:'warning', title: title || 'แจ้งเตือน', text}); }
 
 async function confirmBox({title, text, confirmText='ยืนยัน', cancelText='ยกเลิก', icon='warning'}){
   const r = await Swal.fire({
-    icon, title, text,
+    icon,
+    title: title || 'ยืนยัน',
+    text: text || '',
     showCancelButton:true,
     confirmButtonText: confirmText,
     cancelButtonText: cancelText,
-    reverseButtons:true
+    reverseButtons:true,
+    focusCancel:true
   });
   return !!r.isConfirmed;
 }
@@ -806,6 +803,7 @@ function normalizeStateFromServer(s){
 }
 
 async function loadState(){
+  // ✅ DB เป็นตัวจริง: ถ้า DB ว่าง จะได้ state ว่าง ไม่เอา localStorage มาทับ
   try{
     const j = await apiGetState();
     if(j && j.ok){
@@ -817,6 +815,7 @@ async function loadState(){
     }
     throw new Error(j && j.error ? j.error : 'bad_response');
   }catch(err){
+    // ถ้า DB/เซิร์ฟล่มจริง ๆ ค่อย fallback localStorage
     const cached = localStorage.getItem(KEY);
     if(cached){
       try{
@@ -836,10 +835,10 @@ async function saveState(){
       try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch{}
       return true;
     }
-    toastErr('บันทึกไม่สำเร็จ', j && j.error ? j.error : 'server error');
+    popupErr('บันทึกไม่สำเร็จ', j && j.error ? j.error : 'server error');
     return false;
   }catch(err){
-    toastErr('บันทึกไม่สำเร็จ', 'เชื่อมต่อฐานข้อมูลไม่ได้');
+    popupErr('บันทึกไม่สำเร็จ', 'เชื่อมต่อฐานข้อมูลไม่ได้');
     try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch{}
     return false;
   }
@@ -864,9 +863,9 @@ async function restoreFromSnapshot(snap){
     await saveState();
     refreshPortfolioSelects();
     render();
-    toastOk('Undo/Redo', 'กู้สถานะเรียบร้อย');
+    popupOk('Undo/Redo', 'กู้สถานะเรียบร้อย');
   }catch{
-    toastErr('Undo/Redo', 'กู้สถานะไม่สำเร็จ');
+    popupErr('Undo/Redo', 'กู้สถานะไม่สำเร็จ');
   }
 }
 
@@ -880,14 +879,14 @@ function pushUndo(){
 function canUndo(){ return undoStack.length>0; }
 function canRedo(){ return redoStack.length>0; }
 function doUndo(){
-  if(!canUndo()) return toastErr('Undo', 'ไม่มีรายการให้ย้อนกลับ');
+  if(!canUndo()) return popupErr('Undo', 'ไม่มีรายการให้ย้อนกลับ');
   const cur = snapshotState();
   const prev = undoStack.pop();
   redoStack.push(cur);
   restoreFromSnapshot(prev);
 }
 function doRedo(){
-  if(!canRedo()) return toastErr('Redo', 'ไม่มีรายการให้ทำซ้ำ');
+  if(!canRedo()) return popupErr('Redo', 'ไม่มีรายการให้ทำซ้ำ');
   const cur = snapshotState();
   const next = redoStack.pop();
   undoStack.push(cur);
@@ -1016,8 +1015,8 @@ function refreshPortfolioSelects(){
 
 async function addPortfolio(){
   const name = newPortfolioEl.value.trim();
-  if(!name) return toastErr('เพิ่มพอร์ต', 'กรุณากรอกชื่อพอร์ต');
-  if(state.portfolios.includes(name)) return toastErr('เพิ่มพอร์ต', 'มีพอร์ตนี้อยู่แล้ว');
+  if(!name) return popupErr('เพิ่มพอร์ต', 'กรุณากรอกชื่อพอร์ต');
+  if(state.portfolios.includes(name)) return popupErr('เพิ่มพอร์ต', 'มีพอร์ตนี้อยู่แล้ว');
 
   pushUndo();
   state.portfolios.push(name);
@@ -1029,12 +1028,12 @@ async function addPortfolio(){
   newPortfolioEl.value='';
   refreshPortfolioSelects();
   render();
-  toastOk('เพิ่มพอร์ต', `เพิ่มพอร์ต: ${name}`);
+  popupOk('สำเร็จ!', `เพิ่มพอร์ต: ${name}`);
 }
 
 async function deletePortfolio(){
   const p = activePortfolio();
-  if(state.portfolios.length <= 1) return toastErr('ลบพอร์ต', 'ต้องมีอย่างน้อย 1 พอร์ต');
+  if(state.portfolios.length <= 1) return popupErr('ลบพอร์ต', 'ต้องมีอย่างน้อย 1 พอร์ต');
 
   const yes = await confirmBox({
     title:'ลบพอร์ต',
@@ -1055,7 +1054,7 @@ async function deletePortfolio(){
 
   refreshPortfolioSelects();
   render();
-  toastOk('ลบพอร์ต', `ลบพอร์ต: ${p}`);
+  popupOk('สำเร็จ!', `ลบพอร์ต: ${p}`);
 }
 
 portfolioEl.addEventListener('change', async ()=>{
@@ -1089,7 +1088,7 @@ async function addEntry(type){
   const amount = parseFloat(amountEl.value);
   const port = activePortfolio();
 
-  if(!(amount>0)) return toastErr('บันทึก', 'กรุณากรอกจำนวนเงินให้ถูกต้อง');
+  if(!(amount>0)) return popupErr('บันทึก', 'กรุณากรอกจำนวนเงินให้ถูกต้อง');
 
   pushUndo();
 
@@ -1106,7 +1105,7 @@ async function addEntry(type){
     const rate = parseFloat(rateEl.value);
     if(!(rate>0)){
       undoStack.pop();
-      return toastErr('บันทึก FX', 'กรุณากรอกอัตราแลกเปลี่ยนให้ถูกต้อง (มากกว่า 0)');
+      return popupErr('บันทึก FX', 'กรุณากรอกอัตราแลกเปลี่ยนให้ถูกต้อง (มากกว่า 0)');
     }
 
     let thb=0, usd=0, dir=null;
@@ -1132,7 +1131,7 @@ async function addEntry(type){
   amountEl.value='';
   rateEl.value='';
   render();
-  toastOk('บันทึกแล้ว', type==='invest' ? 'เพิ่มรายการ “ลงเงิน”' : 'เพิ่มรายการ “ได้เงิน”');
+  popupOk('สำเร็จ!', type==='invest' ? 'เพิ่มรายการ “ลงเงิน”' : 'เพิ่มรายการ “ได้เงิน”');
 }
 
 /* ===== Clear functions ===== */
@@ -1155,7 +1154,7 @@ async function clearMode(){
   if(!ok){ doUndo(); return; }
 
   render();
-  toastOk('ล้างข้อมูล', `ล้างโหมด ${m} (พอร์ต ${p}) แล้ว`);
+  popupOk('สำเร็จ!', `ล้างโหมด ${m} (พอร์ต ${p}) แล้ว`);
 }
 
 async function clearPortfolio(){
@@ -1176,7 +1175,7 @@ async function clearPortfolio(){
   if(!ok){ doUndo(); return; }
 
   render();
-  toastOk('ล้างข้อมูล', `ล้างข้อมูลพอร์ต ${p} แล้ว`);
+  popupOk('สำเร็จ!', `ล้างข้อมูลพอร์ต ${p} แล้ว`);
 }
 
 async function clearAll(){
@@ -1196,7 +1195,7 @@ async function clearAll(){
 
   refreshPortfolioSelects();
   render();
-  toastOk('ล้างทั้งหมด', 'ล้างข้อมูลทั้งหมดแล้ว');
+  popupOk('สำเร็จ!', 'ล้างข้อมูลทั้งหมดแล้ว');
 }
 
 /* ===== Editing modal ===== */
@@ -1245,7 +1244,7 @@ async function saveEdit(){
   const type = editTypeEl.value;
 
   const amount = parseFloat(editAmountEl.value);
-  if(!(amount>0)) return toastErr('แก้ไข', 'กรุณากรอกจำนวนให้ถูกต้อง');
+  if(!(amount>0)) return popupErr('แก้ไข', 'กรุณากรอกจำนวนให้ถูกต้อง');
 
   const note = editNoteEl.value.trim();
 
@@ -1258,7 +1257,7 @@ async function saveEdit(){
     const rate = parseFloat(editRateEl.value);
     if(!(rate>0)){
       undoStack.pop();
-      return toastErr('แก้ไข FX', 'กรุณากรอกอัตราแลกเปลี่ยนให้ถูกต้อง');
+      return popupErr('แก้ไข FX', 'กรุณากรอกอัตราแลกเปลี่ยนให้ถูกต้อง');
     }
 
     let thb=0, usd=0;
@@ -1273,7 +1272,7 @@ async function saveEdit(){
 
   closeModal();
   render();
-  toastOk('แก้ไขแล้ว', 'บันทึกการแก้ไขสำเร็จ');
+  popupOk('สำเร็จ!', 'บันทึกการแก้ไขสำเร็จ');
 }
 
 async function deleteEditing(){
@@ -1295,7 +1294,7 @@ async function deleteEditing(){
 
   closeModal();
   render();
-  toastOk('ลบแล้ว', 'ลบรายการเรียบร้อย');
+  popupOk('สำเร็จ!', 'ลบรายการเรียบร้อย');
 }
 
 async function quickDelete(id){
@@ -1314,7 +1313,7 @@ async function quickDelete(id){
   if(!ok){ doUndo(); return; }
 
   render();
-  toastOk('ลบแล้ว', 'ลบรายการเรียบร้อย');
+  popupOk('สำเร็จ!', 'ลบรายการเรียบร้อย');
 }
 
 /* ===== Chart drawing ===== */
@@ -1335,10 +1334,9 @@ function getThemeColors(){
     text: styles.getPropertyValue('--text-main').trim() || '#111',
     muted: styles.getPropertyValue('--text-soft').trim() || '#666',
     border: styles.getPropertyValue('--border').trim() || '#ddd',
-    accent1: styles.getPropertyValue('--accent1').trim() || '#2563eb',
-    accent2: styles.getPropertyValue('--accent2').trim() || '#38bdf8',
-    ok1: styles.getPropertyValue('--ok1').trim() || '#16a34a',
-    danger1: styles.getPropertyValue('--danger1').trim() || '#dc2626'
+    accent: styles.getPropertyValue('--accent').trim() || '#2563eb',
+    ok: styles.getPropertyValue('--ok').trim() || '#16a34a',
+    danger: styles.getPropertyValue('--danger').trim() || '#dc2626'
   };
 }
 function makeSeriesForActive(){
@@ -1454,11 +1452,11 @@ function drawChart(){
   const mkPts = (arr)=> arr.map((v,i)=>({x:toX(i), y:toY(v)}));
 
   ctx.lineWidth = 2.5;
-  ctx.strokeStyle = colors.accent1;
+  ctx.strokeStyle = colors.accent;
   drawLine(ctx, mkPts(s1));
 
   ctx.globalAlpha = 0.9;
-  ctx.strokeStyle = colors.ok1;
+  ctx.strokeStyle = colors.ok;
   drawLine(ctx, mkPts(s2));
   ctx.globalAlpha = 1;
 
@@ -1578,9 +1576,36 @@ async function init(){
 
   render();
 
-  // ✅ ไม่บังคับแจ้งทุกครั้ง (กันรบกวน) — ถ้าคุณอยากให้แจ้งเสมอค่อยเปิด
-  // const hasData = Array.isArray(state.ledger) && state.ledger.length > 0;
-  // if(hasData) toastOk('โหลดข้อมูลแล้ว', 'ดึงข้อมูลจากฐานข้อมูลสำเร็จ');
+  // สถานะเริ่มต้น (กลางจอ)
+  const hasData = Array.isArray(state.ledger) && state.ledger.length > 0;
+  if(hasData) popupOk('สำเร็จ!', 'โหลดข้อมูลจากฐานข้อมูลแล้ว');
+  else popupInfo('พร้อมใช้งาน', 'ยังไม่มีข้อมูลในฐานข้อมูล');
+
+  // ✅ SESSION: Modal กลางจอแบบตัวอย่างที่คุณส่ง
+  const sessSuccess = <?php echo json_encode($__sess_success, JSON_UNESCAPED_UNICODE); ?>;
+  const sessError   = <?php echo json_encode($__sess_error, JSON_UNESCAPED_UNICODE); ?>;
+
+  if (sessSuccess) {
+    Swal.fire({
+      icon: 'success',
+      title: 'สำเร็จ!',
+      text: sessSuccess,
+      showConfirmButton: false,
+      timer: 1000,
+      timerProgressBar: true
+    });
+  }
+
+  if (sessError) {
+    Swal.fire({
+      icon: 'error',
+      title: 'เกิดข้อผิดพลาด!',
+      text: sessError,
+      showConfirmButton: false,
+      timer: 1000,
+      timerProgressBar: true
+    });
+  }
 }
 init();
 </script>
